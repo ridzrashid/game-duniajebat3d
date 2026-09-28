@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Jelajah Jebat: Pemburu Harta Karun</title>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+            color: #fff;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Overlay UI Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 28px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            border: 2px solid #38bdf8;
+            position: relative;
+        }
+
+        h1 {
+            color: #facc15;
+            margin-bottom: 8px;
+            font-size: 2.2rem;
+            text-shadow: 0 2px 8px rgba(250, 204, 21, 0.4);
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            color: #38bdf8;
+            margin-bottom: 16px;
+            font-size: 1.4rem;
+        }
+
+        p {
+            color: #cbd5e1;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: #38bdf8;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+            transition: all 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        /* HUD semasa bermain */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 5;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        #hud div {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #facc15;
+            margin-bottom: 4px;
+        }
+
+        #hud div:last-child {
+            margin-bottom: 0;
+            color: #38bdf8;
+        }
+
+        /* Kawalan Mobile Touch */
+        #touch-controls {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 5;
+            display: grid;
+            grid-template-columns: repeat(3, 55px);
+            grid-gap: 8px;
+            display: none;
+        }
+
+        .dpad-btn {
+            width: 55px;
+            height: 55px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            font-size: 1.4rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            backdrop-filter: blur(4px);
+        }
+
+        .dpad-btn:active {
+            background: rgba(56, 189, 248, 0.5);
+        }
+
+        #action-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 5;
+            width: 75px;
+            height: 75px;
+            background: #eab308;
+            border-radius: 50%;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 1rem;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 15px rgba(234, 179, 8, 0.4);
+            border: 3px solid #fff;
+            touch-action: manipulation;
+        }
+
+        #action-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Question Modal Options */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .option-btn {
+            background: #334155;
+            border: 1px solid #475569;
+            padding: 14px 10px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .option-btn:hover {
+            background: #475569;
+        }
+
+        /* Sound Toggle Button */
+        #sound-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 8;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Medal Canvas */
+        #badge-canvas {
+            width: 100%;
+            max-width: 320px;
+            height: auto;
+            border-radius: 16px;
+            margin: 15px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            background: #0f172a;
+        }
+
+        @media (max-width: 768px) {
+            #touch-controls { display: grid; }
+            #action-btn { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Render Container 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- Screen 1: Borang Nama & Mod -->
+    <div id="start-screen" class="screen">
+        <div class="card">
+            <h1>JELAJAH JEBAT</h1>
+            <p>Pemburu Harta Karun Penjodoh Bilangan 3D</p>
+            
+            <div class="input-group">
+                <label for="player-name">Nama Pemain:</label>
+                <input type="text" id="player-name" placeholder="Cth: Hang Jebat" required autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <label for="player-class">Kelas:</label>
+                <input type="text" id="player-class" placeholder="Cth: 5 Cemerlang" required autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <label for="difficulty">Tahap Kesukaran:</label>
+                <select id="difficulty">
+                    <option value="mudah">Mudah (Asas)</option>
+                    <option value="sederhana">Sederhana (Pertengahan)</option>
+                    <option value="tinggi">Tinggi (Mencabar)</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="startGame()">MULA KEMBARA</button>
+        </div>
+    </div>
+
+    <!-- HUD Papan Skor -->
+    <div id="hud">
+        <div id="hud-name">Pemain: -</div>
+        <div id="hud-score">Skor: 0</div>
+        <div id="hud-chests">Peti Ditemui: 0 / 10</div>
+    </div>
+
+    <!-- Sound Toggle -->
+    <button id="sound-toggle" onclick="toggleAudio()">🔊 Bunyi: ON</button>
+
+    <!-- Kawalan Sentuhan Telefon -->
+    <div id="touch-controls">
+        <div></div>
+        <div class="dpad-btn" id="btn-up">▲</div>
+        <div></div>
+        <div class="dpad-btn" id="btn-left">◄</div>
+        <div class="dpad-btn" id="btn-down">▼</div>
+        <div class="dpad-btn" id="btn-right">►</div>
+    </div>
+    <div id="action-btn" onclick="interactChest()">BUKA</div>
+
+    <!-- Screen 2: Modal Soalan -->
+    <div id="question-modal" class="screen" style="display: none;">
+        <div class="card">
+            <h2 id="modal-title">Peti Harta Karun!</h2>
+            <p id="question-text">Pilih penjodoh bilangan yang betul untuk melengkapkan ayat.</p>
+            <div class="options-grid" id="options-container"></div>
+        </div>
+    </div>
+
+    <!-- Screen 3: Keputusan & Lencana Medal -->
+    <div id="end-screen" class="screen" style="display: none;">
+        <div class="card">
+            <h1>TAHNIAH!</h1>
+            <p>Anda telah berjaya meneroka dunia Jebat dan membuka semua peti harta karun!</p>
+            
+            <canvas id="badge-canvas" width="400" height="400"></canvas>
+
+            <button class="btn-primary" onclick="restartGame()">MAIN LAGI</button>
+        </div>
+    </div>
+
+    <script>
+        // --- SISTEM BUNYI & AUDIO SYNTHESIZER (WEB AUDIO API) ---
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-toggle').innerText = soundEnabled ? "🔊 Bunyi: ON" : "🔇 Bunyi: OFF";
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'step') {
+                // Bunyi langkah kaki (soft thud)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'chest') {
+                // Bunyi buka peti (arpeggio berkilau)
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.3);
+                });
+            } else if (type === 'correct') {
+                // Fanfare jawapan betul
+                [587.33, 739.99, 880, 1174.66].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+                    gain.gain.setValueAtTime(0.25, now + idx * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.09);
+                    osc.stop(now + idx * 0.09 + 0.4);
+                });
+            } else if (type === 'wrong') {
+                // Buzzer jawapan salah
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        // --- BANK SOALAN PENJODOH BILANGAN (10 Soalan x 3 Mod) ---
+        const questionBank = {
+            mudah: [
+                { q: "Pak Samad memotong dua ____ pisang dari kebunnya.", options: ["sikat", "biji", "batang", "pucuk"], answer: "sikat" },
+                { q: "Ibu memotong buah tembikai menggunakan se____ pisau tajam.", options: ["bilah", "keping", "bentuk", "pucuk"], answer: "bilah" },
+                { q: "Adik memakai se____ cincin emas yang dipakaikan oleh ibu.", options: ["bentuk", "utas", "laras", "helai"], answer: "bentuk" },
+                { q: "Nenek membeli tiga ____ durian yang manis di gerai itu.", options: ["biji", "pucuk", "keping", "utas"], answer: "biji" },
+                { q: "Posmen menyerahkan se____ surat kepada ayah.", options: ["pucuk", "helai", "bilah", "batang"], answer: "pucuk" },
+                { q: "Di zoo itu, kami melihat dua ____ gajah yang sangat besar.", options: ["ekor", "buah", "biji", "orang"], answer: "ekor" },
+                { q: "Abang sedang membaca se____ buku cerita di bilik bacaan.", options: ["buah", "naskhah", "keping", "helai"], answer: "buah" },
+                { q: "Polis menembak penceroboh itu dengan se____ pistol.", options: ["pucuk", "laras", "das", "bilah"], answer: "pucuk" },
+                { q: "Emak membelikan saya se____ baju kemeja baharu.", options: ["helai", "keping", "bentuk", "buah"], answer: "helai" },
+                { q: "Di tepi jalan raya itu terdapat dua ____ pokok kelapa.", options: ["batang", "pucuk", "buah", "biji"], answer: "batang" }
+            ],
+            sederhana: [
+                { q: "Tukang kayu memerlukan lima ____ papan untuk membuat meja makan.", options: ["keping", "bidang", "helai", "pucuk"], answer: "keping" },
+                { q: "Nelayan itu menggunakan se____ jala untuk menangkap ikan di laut.", options: ["rawan", "utas", "lembar", "bidang"], answer: "rawan" },
+                { q: "Penyajak itu mendeklamasikan dua ____ puisi dengan penuh semangat.", options: ["rangkap", "pucuk", "keping", "buah"], answer: "rangkap" },
+                { q: "Ibu menggantung se____ gambar keluarga di dinding ruang tamu.", options: ["keping", "buah", "bidang", "lembar"], answer: "keping" },
+                { q: "Datuk membeli se____ tikar mengkuang di pasar kraftangan.", options: ["bidang", "keping", "helai", "lembar"], answer: "bidang" },
+                { q: "Pemburu itu melepaskan dua ____ tembakan ke arah sasaran.", options: ["das", "pucuk", "laras", "butir"], answer: "das" },
+                { q: "Nenek memasukkan se____ garam ke dalam gulai yang sedang dimasak.", options: ["cubit", "gumpal", "genggam", "ketul"], answer: "cubit" },
+                { q: "Di langit biru kelihatan beberapa ____ awan putih berarak perlahan.", options: ["gumpal", "keping", "ketul", "tongkol"], answer: "gumpal" },
+                { q: "Mak Cik Aminah membeli dua ____ kangkung segar dari pasar tani.", options: ["ikat", "berkas", "rumpun", "genggam"], answer: "ikat" },
+                { q: "Kakak menggunakan dua ____ benang merah untuk menjahit baju.", options: ["buku", "utas", "lembar", "gulung"], answer: "buku" }
+            ],
+            tinggi: [
+                { q: "Pasukan pengakap mendirikan se____ khemah di tepi sungai.", options: ["buah", "bidang", "pucuk", "pintu"], answer: "buah" },
+                { q: "Pihak polis menjumpai dua ____ senjata api di lokasi kejadian.", options: ["pucuk", "laras", "das", "batang"], answer: "pucuk" },
+                { q: "Sasterawan negara itu menulis beberapa ____ pantun nasihat.", options: ["rangkap", "pucuk", "buah", "keping"], answer: "rangkap" },
+                { q: "Aktivis itu mengedarkan se____ surat layang kepada pengundi.", options: ["pucuk", "keping", "helai", "naskhah"], answer: "pucuk" },
+                { q: "Di tepi tebing sungai itu tumbuh se____ buluh yang rimbun.", options: ["rumpun", "pohon", "batang", "gumpal"], answer: "rumpun" },
+                { q: "Ibu membeli se____ kunci untuk mangga pintu rumah yang baharu.", options: ["jambak", "utas", "pucuk", "biji"], answer: "jambak" },
+                { q: "Budak itu bermain se____ mercun ketika sambutan perayaan.", options: ["batang", "pucuk", "dusun", "laras"], answer: "batang" },
+                { q: "Beberapa ____ tiang elektrik tumbang akibat dilanda ribut kuat.", options: ["batang", "buah", "pucuk", "pohon"], answer: "batang" },
+                { q: "Adik memesan se____ roti canai dan teh tarik di restoran.", options: ["keping", "helai", "ketul", "biji"], answer: "keping" },
+                { q: "Pegawai tentera itu memegang se____ tongkat komando sewaktu perbarisan.", options: ["batang", "bilah", "pucuk", "utas"], answer: "batang" }
+            ]
+        };
+
+        // --- PEMBUATAN DUNIA 3D (THREE.JS) ---
+        let scene, camera, renderer, player;
+        let chests = [];
+        let playerStats = { name: "", class: "", difficulty: "mudah", score: 0, openedCount: 0 };
+        let activeQuestions = [];
+        let nearestChest = null;
+        let animationFrameId = null;
+
+        // Elemen Dinamik Persekitaran
+        let animatedTrees = [];
+        let animatedClouds = [];
+        let firefliesMesh = null;
+        let waterMesh = null;
+        let waterGeometry = null;
+        let clock = new THREE.Clock();
+
+        // Anggota Badan Pemain untuk Animasi Berjalan
+        let playerLimbs = { leftLeg: null, rightLeg: null, leftArm: null, rightArm: null, keris: null };
+        let stepAudioTimer = 0;
+
+        // Kawalan Pergerakan
+        let keys = { Up: false, Down: false, Left: false, Right: false };
+
+        function init3DWorld() {
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = '';
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x38bdf8); // Sky color
+            scene.fog = new THREE.FogExp2(0x38bdf8, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Pencahayaan
+            const ambientLight = new THREE.AmbientLight(0xfff7ed, 0.65);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffedd5, 1.1);
+            dirLight.position.set(30, 45, 25);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 120;
+            dirLight.shadow.camera.left = -40;
+            dirLight.shadow.camera.right = 40;
+            dirLight.shadow.camera.top = 40;
+            dirLight.shadow.camera.bottom = -40;
+            scene.add(dirLight);
+
+            // Rumput & Tanah
+            const groundGeo = new THREE.PlaneGeometry(140, 140, 32, 32);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.8, metalness: 0.1 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Bina Alam Sekitar
+            createMapEnvironment();
+
+            // Watak Utama Jebat
+            player = createPlayerMesh();
+            player.position.set(0, 0, 0);
+            scene.add(player);
+
+            // Taburkan 10 Peti Harta Karun
+            spawnChests();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createPlayerMesh() {
+            const playerGroup = new THREE.Group();
+
+            // Bahan-bahan (Materials)
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xe0ac69, roughness: 0.6 }); // Kulit sawo matang
+            const tunicMat = new THREE.MeshStandardMaterial({ color: 0x881337, roughness: 0.5 }); // Baju Merah Hati
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 }); // Seluar Gelap
+            const sampingMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.4, metalness: 0.2 }); // Samping Songket Emas
+            const tanjakMat = new THREE.MeshStandardMaterial({ color: 0x701a75, roughness: 0.5 }); // Tanjak Ungu Gelap
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8, roughness: 0.2 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+
+            // Badan (Torso)
+            const torsoGeo = new THREE.CylinderGeometry(0.32, 0.28, 0.8, 12);
+            const torso = new THREE.Mesh(torsoGeo, tunicMat);
+            torso.position.y = 0.95;
+            torso.castShadow = true;
+            playerGroup.add(torso);
+
+            // Samping (Waist Cloth)
+            const sampingGeo = new THREE.CylinderGeometry(0.34, 0.38, 0.4, 12);
+            const samping = new THREE.Mesh(sampingGeo, sampingMat);
+            samping.position.y = 0.65;
+            samping.castShadow = true;
+            playerGroup.add(samping);
+
+            // Tali Pinggang & Keris
+            const beltGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 12);
+            const belt = new THREE.Mesh(beltGeo, goldMat);
+            belt.position.y = 0.78;
+            playerGroup.add(belt);
+
+            const kerisGroup = new THREE.Group();
+            const hiltGeo = new THREE.CylinderGeometry(0.03, 0.02, 0.2, 8);
+            const hilt = new THREE.Mesh(hiltGeo, goldMat);
+            hilt.rotation.z = Math.PI / 4;
+            kerisGroup.add(hilt);
+            kerisGroup.position.set(0.28, 0.78, 0.15);
+            playerGroup.add(kerisGroup);
+            playerLimbs.keris = kerisGroup;
+
+            // Kepala (Head)
+            const headGroup = new THREE.Group();
+            headGroup.position.y = 1.55;
+
+            const headGeo = new THREE.SphereGeometry(0.24, 16, 16);
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.castShadow = true;
+            headGroup.add(head);
+
+            // Mata
+            const eyeGeo = new THREE.SphereGeometry(0.035, 8, 8);
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.09, 0.03, 0.21);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.09, 0.03, 0.21);
+            headGroup.add(leftEye);
+            headGroup.add(rightEye);
+
+            // Tanjak (Malay Headgear)
+            const tanjakBase = new THREE.ConeGeometry(0.28, 0.25, 5);
+            const tanjak = new THREE.Mesh(tanjakBase, tanjakMat);
+            tanjak.position.y = 0.18;
+            tanjak.rotation.y = Math.PI / 5;
+            tanjak.castShadow = true;
+            headGroup.add(tanjak);
+
+            const foldGeo = new THREE.BoxGeometry(0.12, 0.2, 0.04);
+            const fold = new THREE.Mesh(foldGeo, goldMat);
+            fold.position.set(0, 0.22, 0.18);
+            fold.rotation.z = -Math.PI / 6;
+            headGroup.add(fold);
+
+            playerGroup.add(headGroup);
+
+            // Kaki Kiri & Kanan (Pivot dari Pinggul)
+            const legGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.55, 10);
+            
+            const leftLegGroup = new THREE.Group();
+            leftLegGroup.position.set(-0.16, 0.5, 0);
+            const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+            leftLegMesh.position.y = -0.25;
+            leftLegMesh.castShadow = true;
+            leftLegGroup.add(leftLegMesh);
+            playerGroup.add(leftLegGroup);
+
+            const rightLegGroup = new THREE.Group();
+            rightLegGroup.position.set(0.16, 0.5, 0);
+            const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+            rightLegMesh.position.y = -0.25;
+            rightLegMesh.castShadow = true;
+            rightLegGroup.add(rightLegMesh);
+            playerGroup.add(rightLegGroup);
+
+            // Lengan Kiri & Kanan (Pivot dari Bahu)
+            const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.5, 10);
+
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-0.38, 1.25, 0);
+            const leftArmMesh = new THREE.Mesh(armGeo, tunicMat);
+            leftArmMesh.position.y = -0.22;
+            leftArmMesh.castShadow = true;
+            leftArmGroup.add(leftArmMesh);
+            playerGroup.add(leftArmGroup);
+
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.38, 1.25, 0);
+            const rightArmMesh = new THREE.Mesh(armGeo, tunicMat);
+            rightArmMesh.position.y = -0.22;
+            rightArmMesh.castShadow = true;
+            rightArmGroup.add(rightArmMesh);
+            playerGroup.add(rightArmGroup);
+
+            // Simpan rujukan untuk animasi berjalan
+            playerLimbs.leftLeg = leftLegGroup;
+            playerLimbs.rightLeg = rightLegGroup;
+            playerLimbs.leftArm = leftArmGroup;
+            playerLimbs.rightArm = rightArmGroup;
+
+            return playerGroup;
+        }
+
+        function createMapEnvironment() {
+            animatedTrees = [];
+            animatedClouds = [];
+
+            // 1. Tasik / Water Pond
+            waterGeometry = new THREE.PlaneGeometry(24, 24, 20, 20);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x0284c7,
+                roughness: 0.1,
+                metalness: 0.8,
+                transparent: true,
+                opacity: 0.82
+            });
+            waterMesh = new THREE.Mesh(waterGeometry, waterMat);
+            waterMesh.rotation.x = -Math.PI / 2;
+            waterMesh.position.set(-18, 0.05, 18);
+            scene.add(waterMesh);
+
+            // 2. Pokok-Pokok Berani / Swaying Trees
+            const trunkGeo = new THREE.CylinderGeometry(0.22, 0.35, 2.2, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+            const leavesGeo = new THREE.ConeGeometry(1.4, 3.2, 8);
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.5 });
+
+            for (let i = 0; i < 40; i++) {
+                const tree = new THREE.Group();
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.y = 1.1;
+                trunk.castShadow = true;
+
+                const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+                leaves.position.y = 3.2;
+                leaves.castShadow = true;
+
+                tree.add(trunk);
+                tree.add(leaves);
+
+                let x = (Math.random() - 0.5) * 110;
+                let z = (Math.random() - 0.5) * 110;
+
+                // Jangan letak pokok atas tasik atau tempat mula
+                if (Math.abs(x) < 8 && Math.abs(z) < 8) x += 15;
+                if (Math.hypot(x - (-18), z - 18) < 15) z -= 20;
+
+                tree.position.set(x, 0, z);
+                scene.add(tree);
+
+                animatedTrees.push({ group: tree, phase: Math.random() * Math.PI * 2 });
+            }
+
+            // 3. Batuan & Bunga-Bunga Seandainya
+            createRocksAndFlowers();
+
+            // 4. Awan Berarak (Clouds)
+            const cloudGeo = new THREE.DodecahedronGeometry(2.5, 1);
+            const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.85 });
+
+            for (let c = 0; c < 12; c++) {
+                const cloudGroup = new THREE.Group();
+                for (let b = 0; b < 3; b++) {
+                    const cloudPart = new THREE.Mesh(cloudGeo, cloudMat);
+                    cloudPart.position.set(b * 1.8, Math.random() * 0.5, Math.random() * 0.8);
+                    cloudGroup.add(cloudPart);
+                }
+                cloudGroup.position.set((Math.random() - 0.5) * 120, 18 + Math.random() * 6, (Math.random() - 0.5) * 120);
+                scene.add(cloudGroup);
+                animatedClouds.push(cloudGroup);
+            }
+
+            // 5. Kelipan Kunang-Kunang / Fireflies
+            const fireflyCount = 60;
+            const fireflyGeo = new THREE.BufferGeometry();
+            const fireflyPos = new Float32Array(fireflyCount * 3);
+
+            for (let f = 0; f < fireflyCount * 3; f += 3) {
+                fireflyPos[f] = (Math.random() - 0.5) * 100;
+                fireflyPos[f + 1] = 1 + Math.random() * 4;
+                fireflyPos[f + 2] = (Math.random() - 0.5) * 100;
+            }
+
+            fireflyGeo.setAttribute('position', new THREE.BufferAttribute(fireflyPos, 3));
+            const fireflyMat = new THREE.PointsMaterial({ color: 0xfde047, size: 0.3, transparent: true, opacity: 0.9 });
+            firefliesMesh = new THREE.Points(fireflyGeo, fireflyMat);
+            scene.add(firefliesMesh);
+        }
+
+        function createRocksAndFlowers() {
+            const rockGeo = new THREE.DodecahedronGeometry(0.6, 1);
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.9 });
+
+            for (let r = 0; r < 25; r++) {
+                const rock = new THREE.Mesh(rockGeo, rockMat);
+                rock.scale.set(1 + Math.random(), 0.6 + Math.random() * 0.5, 1 + Math.random());
+                rock.position.set((Math.random() - 0.5) * 100, 0.2, (Math.random() - 0.5) * 100);
+                rock.castShadow = true;
+                scene.add(rock);
+            }
+
+            // Bunga Merah/Kuning
+            const flowerGeo = new THREE.CircleGeometry(0.15, 6);
+            const flowerMatRed = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide });
+            const flowerMatYellow = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide });
+
+            for (let fl = 0; fl < 60; fl++) {
+                const flower = new THREE.Mesh(flowerGeo, fl % 2 === 0 ? flowerMatRed : flowerMatYellow);
+                flower.rotation.x = -Math.PI / 2;
+                flower.position.set((Math.random() - 0.5) * 100, 0.03, (Math.random() - 0.5) * 100);
+                scene.add(flower);
+            }
+        }
+
+        function spawnChests() {
+            chests = [];
+            const chestBodyGeo = new THREE.BoxGeometry(1.2, 0.6, 0.8);
+            const chestLidGeo = new THREE.BoxGeometry(1.24, 0.25, 0.84);
+            const chestMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.4, metalness: 0.3 }); // Kayu Kemasan Emas
+            const goldTrimMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8, roughness: 0.2 });
+
+            const positions = [
+                {x: 12, z: 12}, {x: -16, z: 14}, {x: 20, z: -20}, {x: -12, z: -25}, {x: 28, z: 8},
+                {x: -25, z: -12}, {x: 8, z: -32}, {x: -30, z: 24}, {x: 25, z: 28}, {x: -8, z: 32}
+            ];
+
+            positions.forEach((pos, index) => {
+                const chestGroup = new THREE.Group();
+
+                // Badan Peti
+                const body = new THREE.Mesh(chestBodyGeo, chestMat);
+                body.position.y = 0.3;
+                body.castShadow = true;
+                chestGroup.add(body);
+
+                // Penutup Peti (Anjal untuk Animasi Buka)
+                const lidGroup = new THREE.Group();
+                lidGroup.position.set(0, 0.6, -0.4);
+                const lid = new THREE.Mesh(chestLidGeo, chestMat);
+                lid.position.set(0, 0.12, 0.4);
+                lid.castShadow = true;
+                lidGroup.add(lid);
+                chestGroup.add(lidGroup);
+
+                // Engsel Kunci Emas
+                const lockGeo = new THREE.BoxGeometry(0.2, 0.2, 0.05);
+                const lock = new THREE.Mesh(lockGeo, goldTrimMat);
+                lock.position.set(0, 0.45, 0.42);
+                chestGroup.add(lock);
+
+                // Jalur Suci Light Beam (Penunjuk Cahaya Ke Langit)
+                const beamGeo = new THREE.CylinderGeometry(0.08, 0.5, 15, 12, 1, true);
+                const beamMat = new THREE.MeshBasicMaterial({
+                    color: 0xfacc15,
+                    transparent: true,
+                    opacity: 0.35,
+                    side: THREE.DoubleSide
+                });
+                const beam = new THREE.Mesh(beamGeo, beamMat);
+                beam.position.y = 7.5;
+                chestGroup.add(beam);
+
+                chestGroup.position.set(pos.x, 0, pos.z);
+                chestGroup.userData = {
+                    id: index,
+                    opened: false,
+                    question: activeQuestions[index],
+                    lidGroup: lidGroup,
+                    beam: beam
+                };
+                
+                scene.add(chestGroup);
+                chests.push(chestGroup);
+            });
+        }
+
+        // --- LOGIK PERMAINAN & KAWALAN ---
+        function startGame() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const classInput = document.getElementById('player-class').value.trim();
+            
+            if (!nameInput || !classInput) {
+                alert("Sila lengkapkan Nama dan Kelas anda!");
+                return;
+            }
+
+            initAudio(); // Aktifkan Web Audio Context
+
+            playerStats.name = nameInput;
+            playerStats.class = classInput;
+            playerStats.difficulty = document.getElementById('difficulty').value;
+            playerStats.score = 0;
+            playerStats.openedCount = 0;
+
+            activeQuestions = [...questionBank[playerStats.difficulty]].sort(() => Math.random() - 0.5);
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            updateHUD();
+
+            init3DWorld();
+            setupControls();
+            animate();
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-name').innerText = `Pemain: ${playerStats.name} (${playerStats.class})`;
+            document.getElementById('hud-score').innerText = `Skor: ${playerStats.score} Mata`;
+            document.getElementById('hud-chests').innerText = `Peti Ditemui: ${playerStats.openedCount} / 10`;
+        }
+
+        function setupControls() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.Up = true;
+                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.Down = true;
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.Left = true;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.Right = true;
+                if (e.key === ' ' || e.key === 'e' || e.key === 'E') interactChest();
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.Up = false;
+                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.Down = false;
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.Left = false;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.Right = false;
+            });
+
+            const bindTouch = (id, key) => {
+                const btn = document.getElementById(id);
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            };
+            bindTouch('btn-up', 'Up');
+            bindTouch('btn-down', 'Down');
+            bindTouch('btn-left', 'Left');
+            bindTouch('btn-right', 'Right');
+        }
+
+        function animate() {
+            animationFrameId = requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // 1. Pergerakan Pemain & Animasi Berjalan
+            const speed = 0.18;
+            let moving = false;
+
+            if (keys.Up && player.position.z > -60) { player.position.z -= speed; moving = true; player.rotation.y = Math.PI; }
+            if (keys.Down && player.position.z < 60) { player.position.z += speed; moving = true; player.rotation.y = 0; }
+            if (keys.Left && player.position.x > -60) { player.position.x -= speed; moving = true; player.rotation.y = -Math.PI / 2; }
+            if (keys.Right && player.position.x < 60) { player.position.x += speed; moving = true; player.rotation.y = Math.PI / 2; }
+
+            // Rotasi Pepenjuru
+            if (keys.Up && keys.Left) player.rotation.y = -Math.PI * 0.75;
+            if (keys.Up && keys.Right) player.rotation.y = Math.PI * 0.75;
+            if (keys.Down && keys.Left) player.rotation.y = -Math.PI * 0.25;
+            if (keys.Down && keys.Right) player.rotation.y = Math.PI * 0.25;
+
+            // Animasi Langkah Kaki & Lengan (Walk Cycle)
+            if (moving) {
+                const walkCycle = Math.sin(time * 14);
+                playerLimbs.leftLeg.rotation.x = walkCycle * 0.6;
+                playerLimbs.rightLeg.rotation.x = -walkCycle * 0.6;
+                playerLimbs.leftArm.rotation.x = -walkCycle * 0.5;
+                playerLimbs.rightArm.rotation.x = walkCycle * 0.5;
+                player.position.y = Math.abs(Math.sin(time * 14)) * 0.08;
+
+                // Bunyi Langkah Kaki
+                stepAudioTimer += delta;
+                if (stepAudioTimer > 0.3) {
+                    playSound('step');
+                    stepAudioTimer = 0;
+                }
+            } else {
+                // Posisi Pernafasan Selesa (Idle Breathing)
+                playerLimbs.leftLeg.rotation.x = 0;
+                playerLimbs.rightLeg.rotation.x = 0;
+                playerLimbs.leftArm.rotation.x = 0;
+                playerLimbs.rightArm.rotation.x = 0;
+                player.position.y = Math.sin(time * 3) * 0.02;
+            }
+
+            // 2. Kamera Mengikut Pemain (Third Person View)
+            camera.position.set(player.position.x, player.position.y + 9, player.position.z + 13);
+            camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+
+            // 3. Animasi Persekitaran Hidup (Trees Swaying, Clouds, Water Wave, Fireflies)
+            animatedTrees.forEach(t => {
+                t.group.rotation.z = Math.sin(time * 2 + t.phase) * 0.04;
+            });
+
+            animatedClouds.forEach(c => {
+                c.position.x += delta * 1.5;
+                if (c.position.x > 70) c.position.x = -70;
+            });
+
+            // Ombak Tasik (Water Ripples)
+            if (waterGeometry) {
+                const pos = waterGeometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const u = pos.getX(i);
+                    const v = pos.getY(i);
+                    const z = Math.sin(time * 2 + u * 0.5 + v * 0.5) * 0.12;
+                    pos.setZ(i, z);
+                }
+                waterGeometry.computeVertexNormals();
+                waterGeometry.attributes.position.needsUpdate = true;
+            }
+
+            // Pergerakan Kelipan Kunang-Kunang
+            if (firefliesMesh) {
+                const pos = firefliesMesh.geometry.attributes.position;
+                for (let i = 1; i < pos.count * 3; i += 3) {
+                    pos.array[i] += Math.sin(time * 3 + i) * 0.01;
+                }
+                firefliesMesh.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // 4. Semak Jarak Peti Karun & Rotasi Beam
+            nearestChest = null;
+            chests.forEach(chest => {
+                if (!chest.userData.opened) {
+                    chest.userData.beam.rotation.y += delta;
+
+                    const dist = player.position.distanceTo(chest.position);
+                    if (dist < 2.5) {
+                        nearestChest = chest;
+                    }
+                }
+            });
+
+            // Kemaskini Visual Butang Tindakan
+            const actionBtn = document.getElementById('action-btn');
+            if (nearestChest) {
+                actionBtn.style.background = "#22c55e";
+                actionBtn.innerText = "BUKA";
+            } else {
+                actionBtn.style.background = "#eab308";
+                actionBtn.innerText = "CARI";
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function interactChest() {
+            if (nearestChest && !nearestChest.userData.opened) {
+                playSound('chest');
+                showQuestionModal(nearestChest);
+            }
+        }
+
+        function showQuestionModal(chest) {
+            const modal = document.getElementById('question-modal');
+            const qData = chest.userData.question;
+            
+            document.getElementById('question-text').innerText = qData.q;
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => answerQuestion(chest, opt, qData.answer);
+                optionsContainer.appendChild(btn);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function answerQuestion(chest, selected, correct) {
+            document.getElementById('question-modal').style.display = 'none';
+            
+            chest.userData.opened = true;
+            
+            // Animasi Penutup Peti Terbuka & Hilangkan Light Beam
+            chest.userData.lidGroup.rotation.x = -Math.PI * 0.65;
+            scene.remove(chest.userData.beam);
+
+            if (selected === correct) {
+                playSound('correct');
+                alert("Jawapan Tepat! Anda mendapat +10 Mata.");
+                playerStats.score += 10;
+            } else {
+                playSound('wrong');
+                alert(`Jawapan Kurang Tepat.\nJawapan sebenar: "${correct}"`);
+            }
+
+            playerStats.openedCount++;
+            updateHUD();
+
+            if (playerStats.openedCount >= 10) {
+                setTimeout(endGame, 800);
+            }
+        }
+
+        // --- PENJANAN LENCANA / MEDAL (CANVAS 2D) ---
+        function endGame() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('touch-controls').style.display = 'none';
+            document.getElementById('action-btn').style.display = 'none';
+            document.getElementById('sound-toggle').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'flex';
+
+            generateBadge();
+        }
+
+        function generateBadge() {
+            const canvas = document.getElementById('badge-canvas');
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const bgGradient = ctx.createLinearGradient(0, 0, 400, 400);
+            bgGradient.addColorStop(0, '#1e293b');
+            bgGradient.addColorStop(1, '#0f172a');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, 400, 400);
+
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(12, 12, 376, 376);
+
+            let medalColor1 = '#cd7f32', medalColor2 = '#a0522d', medalTitle = 'PINGAT GANGSA';
+            if (playerStats.score >= 80) {
+                medalColor1 = '#facc15'; medalColor2 = '#eab308'; medalTitle = 'PINGAT EMAS';
+            } else if (playerStats.score >= 50) {
+                medalColor1 = '#cbd5e1'; medalColor2 = '#94a3b8'; medalTitle = 'PINGAT PERAK';
+            }
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.moveTo(170, 40); ctx.lineTo(200, 110); ctx.lineTo(150, 110); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.moveTo(230, 40); ctx.lineTo(250, 110); ctx.lineTo(200, 110); ctx.closePath(); ctx.fill();
+
+            const medalGrad = ctx.createRadialGradient(200, 125, 10, 200, 125, 55);
+            medalGrad.addColorStop(0, medalColor1);
+            medalGrad.addColorStop(1, medalColor2);
+
+            ctx.beginPath();
+            ctx.arc(200, 125, 55, 0, Math.PI * 2);
+            ctx.fillStyle = medalGrad;
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 15px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText("JEBAT", 200, 130);
+
+            ctx.fillStyle = '#facc15';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText("LENCANA PENGUASAAN", 200, 215);
+
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = '14px Arial';
+            ctx.fillText("PENJODOH BILANGAN 3D", 200, 238);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(`Nama: ${playerStats.name}`, 200, 280);
+            ctx.font = '15px Arial';
+            ctx.fillText(`Kelas: ${playerStats.class}`, 200, 305);
+            ctx.fillText(`Tahap: ${playerStats.difficulty.toUpperCase()}`, 200, 328);
+
+            ctx.fillStyle = '#4ade80';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText(`SKOR: ${playerStats.score} / 100 (${medalTitle})`, 200, 365);
+        }
+
+        function restartGame() {
+            document.getElementById('end-screen').style.display = 'none';
+            document.getElementById('sound-toggle').style.display = 'block';
+            document.getElementById('start-screen').style.display = 'flex';
+        }
+
+        function onWindowResize() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+    </script>
+</body>
+</html>
